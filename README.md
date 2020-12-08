@@ -1,5 +1,9 @@
 # `asyncio-connection-pool`
 
+![GitHub Workflow Status (main)](https://img.shields.io/github/workflow/status/fellowinsights/asyncio-connection-pool/CI/main?style=plastic)
+![PyPI](https://img.shields.io/pypi/v/asyncio-connection-pool?style=plastic)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/asyncio-connection-pool?style=plastic)
+
 This is a generic, high-throughput, optionally-burstable pool for asyncio.
 
 Some cool features:
