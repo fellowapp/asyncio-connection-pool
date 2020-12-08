@@ -39,7 +39,7 @@ required.
 
 This is the implementation of the pool. It is generic over a type of
 connection, and all implementation-specific logic is contained within a
-[`ConnectionStrategy`](#connectionstrategy).
+[`ConnectionStrategy`](#asyncio_connection_poolconnectionstrategy).
 
 A pool is created as follows:
 
