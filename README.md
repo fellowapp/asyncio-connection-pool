@@ -28,8 +28,8 @@ that, under heavy load, we would spend a lot of time waiting for the lock, even
 when there were available connections in the pool.
 
 We also thought it would be nice if we didn't need to keep many connections
-open when they weren't needed, but still have the ability to more when they are
-required.
+open when they weren't needed, but still have the ability to make more when
+they are required.
 
 
 ## API
