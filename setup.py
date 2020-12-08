@@ -19,9 +19,9 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     packages=find_packages(
-        include=["asyncio_connection_pool, asyncio_connection_pool.*"]
+        include=["asyncio_connection_pool", "asyncio_connection_pool.*"]
     ),
-    package_data={"asyncio-connection-pool": ["py.typed"]},
+    package_data={"asyncio_connection_pool": ["py.typed"]},
     python_requires=">=3.8",
     install_requires=[],
     tests_require=["riot"],
