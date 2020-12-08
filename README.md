@@ -1,4 +1,4 @@
-# `asyncio-connection-pool`
+# asyncio-connection-pool
 
 [![GitHub Workflow Status (main)](https://img.shields.io/github/workflow/status/fellowinsights/asyncio-connection-pool/CI/main?style=plastic)][main CI]
 [![PyPI](https://img.shields.io/pypi/v/asyncio-connection-pool?style=plastic)][package]
@@ -119,6 +119,33 @@ asynchronous operation, `asyncio.create_task` can be used.
 If this method raises an exception, the connection is dropped and the exception
 bubbles to the caller of `ConnectionPool.get_connection().__aexit__` (usually
 an `async with` block).
+
+
+## Integrations  with 3rd-party libraries
+
+This package includes support for [`ddtrace`][ddtrace]/[`datadog`][datadog] and
+for [`aioredis`][aioredis].
+
+[ddtrace]: https://github.com/datadog/dd-trace-py
+[datadog]: https://github.com/datadog/datadogpy
+[aioredis]: https://github.com/aio-libs/aioredis
+
+### `asyncio_connection_pool.contrib.datadog.ConnectionPool`
+
+This class subclasses the `ConnectionPool` in the root of the package, and adds
+a bunch of tracing, gauges, and events. The constructor, in addition to the
+arguments of the base class, supports:
+
+- Required `service_name` argument: A prefix to all of the metrics
+- Optional `extra_tags` argument: Additional tags to provide to all metrics
+  (strings in a `"key:value"` format)
+
+
+### `asyncio_connection_pool.contrib.aioredis.RedisConnectionStrategy`
+
+This class implements the `ConnectionStrategy` abstract methods, using
+`aioredis.Redis` objects as connections. The constructor takes arbitrary
+arguments and forwards them to `aioredis.create_redis`.
 
 
 ## How is this safe without locks?
