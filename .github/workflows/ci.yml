@@ -43,4 +43,10 @@ jobs:
       - name: install riot
         run: pip install riot==0.4.0
       - name: run tests
-        run: riot -v run --python=${{ matrix.python-version }} test
+        run: riot -v run --python=${{ matrix.python-version }} test -- --cov=asyncio_connection_pool --cov-branch --cov-config=.coveragerc
+      - name: upload coverage
+        run: pip install coveralls && coveralls
+        env:
+          COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
+      - name: print coverage
+        run: pip install coverage && coverage report
