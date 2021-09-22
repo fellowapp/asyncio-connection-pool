@@ -124,7 +124,7 @@ an `async with` block).
 ## Integrations  with 3rd-party libraries
 
 This package includes support for [`ddtrace`][ddtrace]/[`datadog`][datadog] and
-for [`aioredis`][aioredis].
+for [`aioredis`][aioredis] (<2.0.0).
 
 [ddtrace]: https://github.com/datadog/dd-trace-py
 [datadog]: https://github.com/datadog/datadogpy

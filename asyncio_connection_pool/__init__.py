@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 import asyncio
+import inspect
 from contextlib import asynccontextmanager
 from typing import AsyncIterator, Awaitable, Generic, Optional, TypeVar
 
@@ -17,8 +18,16 @@ class ConnectionStrategy(ABC, Generic[Conn]):
         ...
 
     @abstractmethod
-    def close_connection(self, conn: Conn) -> None:
+    async def close_connection(self, conn: Conn) -> Awaitable[None]:
         ...
+
+
+async def _close_connection_compat(
+    strategy: ConnectionStrategy[Conn], conn: Conn
+) -> None:
+    result = strategy.close_connection(conn)
+    if inspect.isawaitable(result):
+        await result
 
 
 class ConnectionPool(Generic[Conn]):
@@ -63,6 +72,7 @@ class ConnectionPool(Generic[Conn]):
             raise ValueError("burst_limit must be greater than or equal to max_size")
         self.in_use = 0
         self.currently_allocating = 0
+        self.currently_deallocating = 0
         self.available: "asyncio.Queue[Conn]" = asyncio.Queue(maxsize=self.max_size)
 
     @property
@@ -144,16 +154,17 @@ class ConnectionPool(Generic[Conn]):
             yield conn
         finally:
             # Return the connection to the pool.
-            self.in_use -= 1
-            assert self.in_use >= 0, "More connections returned than given"
-
+            self.currently_deallocating += 1
             try:
                 # Check if we are currently over-committed (i.e. bursting)
-                if self._total >= self.max_size and self._waiters == 0:
+                if (
+                    self._total - self.currently_deallocating >= self.max_size
+                    and self._waiters == 0
+                ):
                     # We had created extra connections to handle burst load,
                     # but there are no more waiters, so we don't need this
                     # connection anymore.
-                    self.strategy.close_connection(conn)
+                    await _close_connection_compat(self.strategy, conn)
                 else:
                     self.available.put_nowait(conn)
             except asyncio.QueueFull:
@@ -162,4 +173,9 @@ class ConnectionPool(Generic[Conn]):
                 # have a full queue and still have waiters, but we should
                 # handle this case to be safe (otherwise we would leak
                 # connections).
-                self.strategy.close_connection(conn)
+                await _close_connection_compat(self.strategy, conn)
+            finally:
+                self.currently_deallocating -= 1
+
+            self.in_use -= 1
+            assert self.in_use >= 0, "More connections returned than given"
