@@ -18,7 +18,7 @@ class ConnectionStrategy(ABC, Generic[Conn]):
         ...
 
     @abstractmethod
-    async def close_connection(self, conn: Conn) -> Awaitable[None]:
+    async def close_connection(self, conn: Conn) -> None:
         ...
 
 
