@@ -166,16 +166,18 @@ class ConnectionPool(Generic[Conn]):
                     # connection anymore.
                     await _close_connection_compat(self.strategy, conn)
                 else:
-                    self.available.put_nowait(conn)
-            except asyncio.QueueFull:
-                # We don't actually check if the queue has room before trying
-                # to put the connection into it. It's unclear whether we could
-                # have a full queue and still have waiters, but we should
-                # handle this case to be safe (otherwise we would leak
-                # connections).
-                await _close_connection_compat(self.strategy, conn)
+                    try:
+                        self.available.put_nowait(conn)
+                    except asyncio.QueueFull:
+                        # We don't actually check if the queue has room before
+                        # trying to put the connection into it. It's unclear
+                        # whether we could have a full queue and still have
+                        # waiters, but we should handle this case to be safe
+                        # (otherwise we would leak connections).
+                        await _close_connection_compat(self.strategy, conn)
             finally:
+                # Consider the connection closed if an exception is raised in
+                # the strategy's close_connection.
                 self.currently_deallocating -= 1
-
-            self.in_use -= 1
-            assert self.in_use >= 0, "More connections returned than given"
+                self.in_use -= 1
+                assert self.in_use >= 0, "More connections returned than given"
