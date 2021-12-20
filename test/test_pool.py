@@ -62,9 +62,7 @@ class Counter:
 
 @pytest.mark.asyncio
 async def test_concurrent_get_connection(pool_cls):
-    """Test handling several connection requests in a short time. (Not truly
-    concurrent because of the GIL)
-    """
+    """Test handling several connection requests in a short time."""
 
     pool = pool_cls(strategy=RandomIntStrategy(), max_size=20)
     nworkers = 10

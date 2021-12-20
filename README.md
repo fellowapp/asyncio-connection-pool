@@ -11,8 +11,8 @@ This is a generic, high-throughput, optionally-burstable pool for asyncio.
 
 Some cool features:
 
-- No locking aside from the GIL; no `asyncio.Lock` or `asyncio.Condition` needs
-  to be taken in order to get a connection.
+- No locking[^1]; no `asyncio.Lock` or `asyncio.Condition` needs to be taken in
+  order to get a connection.
 - Available connections are retrieved without yielding to the event loop.
 - When `burst_limit` is specified, `max_size` acts as a "soft" limit; the pool
   can go beyond this limit to handle increased load, and shrinks back down
@@ -20,6 +20,10 @@ Some cool features:
 - The contents of the pool can be anything; just implement a
   `ConnectionStrategy`.
 
+[^1]: Theoretically, there is an implicit "lock" that is held while an asyncio
+      task is executing. No other task can execute until the current task
+      yields (since it's cooperative multitasking), so any operations during
+      that time are atomic.
 
 ## Why?
 
