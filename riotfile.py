@@ -10,6 +10,7 @@ venv = Venv(
             pkgs={
                 "pytest": "==6.2.5",
                 "pytest-asyncio": "==0.16.0",
+                "pytest-cov": latest,
                 # extras_require
                 "ddtrace": latest,
                 "datadog": latest,
