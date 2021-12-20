@@ -15,7 +15,7 @@ def pool_cls(request):
     return request.param
 
 
-class RandomIntStrategy(ConnectionStrategy):
+class RandomIntStrategy(ConnectionStrategy[int]):
     async def make_connection(self):
         import random
 
@@ -62,9 +62,7 @@ class Counter:
 
 @pytest.mark.asyncio
 async def test_concurrent_get_connection(pool_cls):
-    """Test handling several connection requests in a short time. (Not truly
-    concurrent because of the GIL)
-    """
+    """Test handling several connection requests in a short time."""
 
     pool = pool_cls(strategy=RandomIntStrategy(), max_size=20)
     nworkers = 10
@@ -97,7 +95,7 @@ async def test_currently_allocating(pool_cls):
 
     ev = asyncio.Event()
 
-    class WaitStrategy(ConnectionStrategy):
+    class WaitStrategy(ConnectionStrategy[None]):
         async def make_connection(self):
             await ev.wait()
 
@@ -214,7 +212,7 @@ async def test_stale_connections(pool_cls):
 
     stale_connections = {1, 2, 3, 4}
 
-    class Strategy(ConnectionStrategy):
+    class Strategy(ConnectionStrategy[int]):
         def __init__(self):
             from itertools import count
 
@@ -254,7 +252,7 @@ async def test_stale_connections(pool_cls):
 async def test_handling_cancellederror():
     making_connection = asyncio.Event()
 
-    class Strategy(ConnectionStrategy):
+    class Strategy(ConnectionStrategy[int]):
         async def make_connection(self):
             making_connection.set()
             await asyncio.Event().wait()  # wait forever
