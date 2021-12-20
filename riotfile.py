@@ -4,12 +4,12 @@ venv = Venv(
     pys=3,
     venvs=[
         Venv(
-            pys=[3.8, 3.9],
+            pys=["3.8", "3.9", "3.10"],
             name="test",
             command="pytest {cmdargs}",
             pkgs={
-                "pytest": "==6.1.2",
-                "pytest-asyncio": "==0.14.0",
+                "pytest": "==6.2.5",
+                "pytest-asyncio": "==0.16.0",
                 "pytest-cov": latest,
                 # extras_require
                 "ddtrace": latest,
