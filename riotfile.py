@@ -4,7 +4,7 @@ venv = Venv(
     pys=3,
     venvs=[
         Venv(
-            pys=[3.8, 3.9],
+            pys=["3.8", "3.9", "3.10"],
             name="test",
             command="pytest {cmdargs}",
             pkgs={
