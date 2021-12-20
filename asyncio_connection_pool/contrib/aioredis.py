@@ -15,5 +15,6 @@ class RedisConnectionStrategy(ConnectionStrategy[aioredis.Redis]):  # type: igno
     def connection_is_closed(self, conn):
         return conn.closed
 
-    def close_connection(self, conn):
+    async def close_connection(self, conn):
         conn.close()
+        await conn.wait_closed()
