@@ -107,18 +107,15 @@ exception is suppressed unless it is not a `BaseException`, like
 implementation to avoid leaking a connection in this case.
 
 
-#### `def close_connection(self, conn: Conn)`
+#### `async def close_connection(self, conn: Conn)`
 
 This method is called to close a connection. This occurs when the pool has
 exceeded `max_size` (i.e. it is bursting) and a connection is returned that is
 no longer needed (i.e. there are no more consumers waiting for a connection).
 
-Note that this method is synchronous; if closing a connection is an
-asynchronous operation, `asyncio.create_task` can be used.
-
-If this method raises an exception, the connection is dropped and the exception
-bubbles to the caller of `ConnectionPool.get_connection().__aexit__` (usually
-an `async with` block).
+If this method raises an exception, the connection is assumed to be closed and
+the exception bubbles to the caller of `ConnectionPool.get_connection().__aexit__`
+(usually an `async with` block).
 
 
 ## Integrations  with 3rd-party libraries
