@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 import asyncio
+import inspect
 from contextlib import asynccontextmanager
 from typing import AsyncIterator, Awaitable, Generic, Optional, TypeVar
 
@@ -17,8 +18,16 @@ class ConnectionStrategy(ABC, Generic[Conn]):
         ...
 
     @abstractmethod
-    def close_connection(self, conn: Conn) -> None:
+    async def close_connection(self, conn: Conn) -> None:
         ...
+
+
+async def _close_connection_compat(
+    strategy: ConnectionStrategy[Conn], conn: Conn
+) -> None:
+    result = strategy.close_connection(conn)
+    if inspect.isawaitable(result):
+        await result
 
 
 class ConnectionPool(Generic[Conn]):
@@ -26,9 +35,9 @@ class ConnectionPool(Generic[Conn]):
 
     NOTE: Not threadsafe. Do not share across threads.
 
-    This threadpool offers high throughput by avoiding the need for an explicit
-    lock to retrieve a connection. This is possible by taking advantage of
-    Pythons global interpreter lock (GIL).
+    This connection pool offers high throughput by avoiding the need for an
+    explicit lock to retrieve a connection. This is possible by taking
+    advantage of cooperative multitasking with asyncio.
 
     If the optional `burst_limit` argument is supplied, the `max_size` argument
     will act as a "soft" maximum. When there is demand, more connections will
@@ -36,14 +45,12 @@ class ConnectionPool(Generic[Conn]):
     longer needed, they will be closed. This way we can avoid holding many open
     connections for extended times.
 
-    Since we make use of the GIL, this pool should not be shared across
-    threads.  This is unsafe because some C extensions release the GIL when
-    waiting on IO, for example. In that case, a different thread can actually
-    execute concurrently, which breaks the assumptions upon which this pool is
-    based.
+    This implementation assumes that all operations that do not await are
+    atomic. Since CPython can switch thread contexts between each evaluated op
+    code, it is not safe to share an instance of this pool between threads.
 
     This pool is generic over the type of connection it holds, which can be
-    anything. Any implementation dependent logic belongs in the
+    anything. Any logic specific to the connection type belongs in the
     ConnectionStrategy, which should be passed to the pool's constructor via
     the `strategy` parameter.
     """
@@ -63,6 +70,7 @@ class ConnectionPool(Generic[Conn]):
             raise ValueError("burst_limit must be greater than or equal to max_size")
         self.in_use = 0
         self.currently_allocating = 0
+        self.currently_deallocating = 0
         self.available: "asyncio.Queue[Conn]" = asyncio.Queue(maxsize=self.max_size)
 
     @property
@@ -90,11 +98,10 @@ class ConnectionPool(Generic[Conn]):
     def _get_conn(self) -> "Awaitable[Conn]":
         # This function is how we avoid explicitly locking. Since it is
         # synchronous, we do all the "book-keeping" required to get a
-        # connection synchronously (i.e. implicitly holding the GIL), and
-        # return a Future or Task which can be awaited after this function
-        # returns.
+        # connection synchronously, and return a Future or Task which can be
+        # awaited after this function returns.
         #
-        # The most important thing here is that we have the GIL from when we
+        # The most important thing here is that we do not await from when we
         # measure values like `self._total` or `self.available.empty()` until
         # we change values that affect those measurements. In other words,
         # taking a connection must be an atomic operation.
@@ -114,13 +121,14 @@ class ConnectionPool(Generic[Conn]):
             # Returns a Task that resolves to the new connection, which can be
             # awaited.
             #
-            # If there are a lot of threads waiting for a connection, to avoid
+            # If there are a lot of tasks waiting for a connection, to avoid
             # having all of them time out and be cancelled, we'll burst to
             # higher max_size.
             self.currently_allocating += 1
             return self._loop.create_task(self._connection_maker())
         else:
-            # Return a Task that waits for the next task to appear in the queue.
+            # Return a Task that waits for the next connection to appear in the
+            # queue.
             return self._loop.create_task(self._connection_waiter())
 
     @asynccontextmanager
@@ -144,22 +152,30 @@ class ConnectionPool(Generic[Conn]):
             yield conn
         finally:
             # Return the connection to the pool.
-            self.in_use -= 1
-            assert self.in_use >= 0, "More connections returned than given"
-
+            self.currently_deallocating += 1
             try:
                 # Check if we are currently over-committed (i.e. bursting)
-                if self._total >= self.max_size and self._waiters == 0:
+                if (
+                    self._total - self.currently_deallocating >= self.max_size
+                    and self._waiters == 0
+                ):
                     # We had created extra connections to handle burst load,
                     # but there are no more waiters, so we don't need this
                     # connection anymore.
-                    self.strategy.close_connection(conn)
+                    await _close_connection_compat(self.strategy, conn)
                 else:
-                    self.available.put_nowait(conn)
-            except asyncio.QueueFull:
-                # We don't actually check if the queue has room before trying
-                # to put the connection into it. It's unclear whether we could
-                # have a full queue and still have waiters, but we should
-                # handle this case to be safe (otherwise we would leak
-                # connections).
-                self.strategy.close_connection(conn)
+                    try:
+                        self.available.put_nowait(conn)
+                    except asyncio.QueueFull:
+                        # We don't actually check if the queue has room before
+                        # trying to put the connection into it. It's unclear
+                        # whether we could have a full queue and still have
+                        # waiters, but we should handle this case to be safe
+                        # (otherwise we would leak connections).
+                        await _close_connection_compat(self.strategy, conn)
+            finally:
+                # Consider the connection closed even if an exception is raised
+                # in the strategy's close_connection.
+                self.currently_deallocating -= 1
+                self.in_use -= 1
+                assert self.in_use >= 0, "More connections returned than given"
