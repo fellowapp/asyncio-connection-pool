@@ -1,8 +1,9 @@
 # asyncio-connection-pool
 
-[![GitHub Workflow Status (main)](https://img.shields.io/github/workflow/status/fellowinsights/asyncio-connection-pool/CI/main?style=plastic)][main CI]
-[![PyPI](https://img.shields.io/pypi/v/asyncio-connection-pool?style=plastic)][package]
-[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/asyncio-connection-pool?style=plastic)][package]
+[![GitHub Workflow Status (main)](https://img.shields.io/github/workflow/status/fellowinsights/asyncio-connection-pool/CI/main?style=flat)][main CI]
+[![PyPI](https://img.shields.io/pypi/v/asyncio-connection-pool?style=flat)][package]
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/asyncio-connection-pool?style=flat)][package]
+[![Fellow Careers](https://img.shields.io/badge/fellow.app-hiring-576cf7.svg?style=flat)](https://fellow.app/careers/)
 
 [main CI]: https://github.com/fellowinsights/asyncio-connection-pool/actions?query=workflow%3ACI+branch%3Amain
 [package]: https://pypi.org/project/asyncio-connection-pool/
