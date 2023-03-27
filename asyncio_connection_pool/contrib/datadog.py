@@ -53,6 +53,17 @@ class ConnectionPool(_ConnectionPool[Conn]):
                     alert_type="warning",
                     tags=self._extra_tags,
                 )
+            if (
+                self._total == self.burst_limit
+                and not self._reported_hitting_burst_limit
+            ):
+                self._reported_hitting_burst_limit = True
+                statsd.event(
+                    f"{self._service_name} pool reached burst limit",
+                    "There are not enough redis connections to satisfy all users",
+                    alert_type="error",
+                    tags=self._extra_tags,
+                )
         elif self._is_bursting:
             self._is_bursting = False
             self._reported_hitting_burst_limit = False
@@ -60,14 +71,6 @@ class ConnectionPool(_ConnectionPool[Conn]):
                 f"{self._service_name} pool no longer bursting",
                 f"Number of connections has dropped below {self.max_size}",
                 alert_type="success",
-                tags=self._extra_tags,
-            )
-            if self._total == self.burst_limit:
-                self._reported_hitting_burst_limit = True
-            statsd.event(
-                f"{self._service_name} pool reached burst limit",
-                "There are not enough redis connections to satisfy all users",
-                alert_type="error",
                 tags=self._extra_tags,
             )
 
