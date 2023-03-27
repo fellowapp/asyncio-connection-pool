@@ -10,7 +10,7 @@ Conn = TypeVar("Conn")
 
 class ConnectionStrategy(ABC, Generic[Conn]):
     @abstractmethod
-    async def make_connection(self) -> Awaitable[Conn]:
+    async def make_connection(self) -> Conn:
         ...
 
     @abstractmethod
@@ -132,7 +132,7 @@ class ConnectionPool(Generic[Conn]):
             return self._loop.create_task(self._connection_waiter())
 
     @asynccontextmanager
-    async def get_connection(self) -> AsyncIterator[Conn]:  # type: ignore
+    async def get_connection(self) -> AsyncIterator[Conn]:
         # _get_conn atomically does any book-keeping and returns an awaitable
         # that resolves to a connection.
         conn = await self._get_conn()

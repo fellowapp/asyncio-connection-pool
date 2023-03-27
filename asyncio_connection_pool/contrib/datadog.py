@@ -122,7 +122,7 @@ class ConnectionPool(_ConnectionPool[Conn]):
         return super()._get_conn()
 
     @asynccontextmanager
-    async def get_connection(self) -> AsyncIterator[Conn]:  # type: ignore
+    async def get_connection(self) -> AsyncIterator[Conn]:
         async with AsyncExitStack() as stack:
             self._record_connection_acquiring(1)
             try:
