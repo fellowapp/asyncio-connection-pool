@@ -11,6 +11,7 @@ setup(
     author_email="775.pg.12@gmail.com",
     classifiers=[
         "Programming Language :: Python",
+        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
