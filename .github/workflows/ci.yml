@@ -49,4 +49,15 @@ jobs:
       - name: upload coverage
         uses: coverallsapp/github-action@v2
         with:
-          debug: true
+          parallel: true
+          flag-name: run ${{ join(matrix.*, ' - ') }}
+  finish-coveralls:
+    needs: test
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Coveralls Finished
+        uses: coverallsapp/github-action@v2
+        with:
+          parallel-finished: true
+          allow-empty: true
