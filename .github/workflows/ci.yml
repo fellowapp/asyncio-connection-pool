@@ -44,9 +44,9 @@ jobs:
         run: pip install riot==0.19.0
       - name: run tests
         run: riot -v run --python=${{ matrix.python-version }} test -- --cov=asyncio_connection_pool --cov-branch --cov-config=.coveragerc
+      - name: install coverage
+        run: pip install coverage
       - name: upload coverage
         uses: coverallsapp/github-action@v2
         with:
           debug: true
-      - name: print coverage
-        run: pip install coverage && coverage report
