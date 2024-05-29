@@ -61,7 +61,7 @@ class ConnectionPool(Generic[Conn]):
         strategy: ConnectionStrategy[Conn],
         max_size: int,
         burst_limit: Optional[int] = None
-    ):
+    ) -> None:
         self._loop = asyncio.get_event_loop()
         self.strategy = strategy
         self.max_size = max_size
@@ -82,7 +82,7 @@ class ConnectionPool(Generic[Conn]):
         waiters = self.available._getters  # type: ignore
         return sum(not (w.done() or w.cancelled()) for w in waiters)
 
-    async def _connection_maker(self):
+    async def _connection_maker(self) -> Conn:
         try:
             conn = await self.strategy.make_connection()
         finally:
@@ -90,12 +90,12 @@ class ConnectionPool(Generic[Conn]):
         self.in_use += 1
         return conn
 
-    async def _connection_waiter(self):
+    async def _connection_waiter(self) -> Conn:
         conn = await self.available.get()
         self.in_use += 1
         return conn
 
-    def _get_conn(self) -> "Awaitable[Conn]":
+    def _get_conn(self) -> Awaitable[Conn]:
         # This function is how we avoid explicitly locking. Since it is
         # synchronous, we do all the "book-keeping" required to get a
         # connection synchronously, and return a Future or Task which can be
