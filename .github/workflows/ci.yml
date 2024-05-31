@@ -8,7 +8,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.9"
-      - run: pip install riot==0.4.0
+      - run: pip install riot==0.19.0
       - run: riot -v run -s black -- --check .
   mypy:
     runs-on: ubuntu-latest
@@ -17,7 +17,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.9"
-      - run: pip install riot==0.4.0
+      - run: pip install riot==0.19.0
       - run: riot -v run mypy
   flake8:
     runs-on: ubuntu-latest
@@ -26,7 +26,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.9"
-      - run: pip install riot==0.4.0
+      - run: pip install riot==0.19.0
       - run: riot -v run flake8
   test:
     strategy:
@@ -41,12 +41,23 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: install riot
-        run: pip install riot==0.4.0
+        run: pip install riot==0.19.0
       - name: run tests
         run: riot -v run --python=${{ matrix.python-version }} test -- --cov=asyncio_connection_pool --cov-branch --cov-config=.coveragerc
+      - name: install coverage
+        run: pip install coverage
       - name: upload coverage
-        run: pip install coveralls && coveralls
-        env:
-          COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
-      - name: print coverage
-        run: pip install coverage && coverage report
+        uses: coverallsapp/github-action@v2
+        with:
+          parallel: true
+          flag-name: run ${{ join(matrix.*, ' - ') }}
+  finish-coveralls:
+    needs: test
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Coveralls Finished
+        uses: coverallsapp/github-action@v2
+        with:
+          parallel-finished: true
+          allow-empty: true

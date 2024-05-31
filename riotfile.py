@@ -4,12 +4,12 @@ venv = Venv(
     pys=3,
     venvs=[
         Venv(
-            pys=["3.8", "3.9", "3.10"],
+            pys=["3.8", "3.9", "3.10", "3.11", "3.12"],
             name="test",
             command="pytest {cmdargs}",
             pkgs={
-                "pytest": "==6.2.5",
-                "pytest-asyncio": "==0.16.0",
+                "pytest": latest,
+                "pytest-asyncio": latest,
                 "pytest-cov": latest,
                 # extras_require
                 "ddtrace": latest,
@@ -21,11 +21,11 @@ venv = Venv(
             name="mypy",
             command="mypy asyncio_connection_pool",
             pkgs={
-                "mypy": "==0.790",
+                "mypy": "==1.1.1",
             },
         ),
         Venv(
-            pkgs={"black": "==22.3.0"},
+            pkgs={"black": "==23.1.0"},
             venvs=[
                 Venv(
                     name="fmt",
@@ -39,7 +39,7 @@ venv = Venv(
         ),
         Venv(
             name="flake8",
-            pkgs={"flake8": "==3.8.4"},
+            pkgs={"flake8": "==6.0.0"},
             command="flake8 test asyncio_connection_pool",
         ),
     ],
