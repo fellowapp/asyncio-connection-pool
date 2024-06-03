@@ -1,7 +1,9 @@
-from contextlib import asynccontextmanager, AsyncExitStack
-from datadog import statsd
+from contextlib import AsyncExitStack, asynccontextmanager
+from typing import AsyncIterator, Awaitable, TypeVar
+
+from datadog.dogstatsd.base import statsd
 from ddtrace import tracer
-from typing import AsyncIterator, TypeVar
+
 from asyncio_connection_pool import ConnectionPool as _ConnectionPool
 
 __all__ = ("ConnectionPool",)
@@ -18,13 +20,13 @@ class ConnectionPool(_ConnectionPool[Conn]):
         self._extra_tags = extra_tags or []
         self._loop.call_soon(self._periodically_send_metrics)
 
-    def _periodically_send_metrics(self):
+    def _periodically_send_metrics(self) -> None:
         try:
             self._record_pressure()
         finally:
             self._loop.call_later(60, self._periodically_send_metrics)
 
-    def _record_pressure(self):
+    def _record_pressure(self) -> None:
         statsd.gauge(
             f"{self._service_name}.pool.total_connections",
             self._total,
@@ -74,7 +76,7 @@ class ConnectionPool(_ConnectionPool[Conn]):
                 tags=self._extra_tags,
             )
 
-    def _record_connection_acquiring(self, value=0):
+    def _record_connection_acquiring(self, value: int = 0) -> None:
         self._connections_acquiring += value
 
         statsd.gauge(
@@ -83,41 +85,35 @@ class ConnectionPool(_ConnectionPool[Conn]):
             tags=self._extra_tags,
         )
 
-    def _connection_maker(self):
+    async def _connection_maker(self) -> Conn:
         statsd.increment(
             f"{self._service_name}.pool.getting_connection",
-            tags=self._extra_tags + ["method:new"],
+            tags=[*self._extra_tags, "method:new"],
         )
 
-        async def connection_maker(self):
-            with tracer.trace(
-                f"{self._service_name}.pool._create_new_connection",
-                service=self._service_name,
-            ):
-                return await super()._connection_maker()
+        with tracer.trace(
+            f"{self._service_name}.pool._create_new_connection",
+            service=self._service_name,
+        ):
+            return await super()._connection_maker()
 
-        return connection_maker(self)
-
-    def _connection_waiter(self):
+    async def _connection_waiter(self) -> Conn:
         statsd.increment(
             f"{self._service_name}.pool.getting_connection",
-            tags=self._extra_tags + ["method:wait"],
+            tags=[*self._extra_tags, "method:wait"],
         )
 
-        async def connection_waiter(self):
-            with tracer.trace(
-                f"{self._service_name}.pool._wait_for_connection",
-                service=self._service_name,
-            ):
-                return await super()._connection_waiter()
+        with tracer.trace(
+            f"{self._service_name}.pool._wait_for_connection",
+            service=self._service_name,
+        ):
+            return await super()._connection_waiter()
 
-        return connection_waiter(self)
-
-    def _get_conn(self):
+    def _get_conn(self) -> Awaitable[Conn]:
         if not self.available.empty():
             statsd.increment(
                 f"{self._service_name}.pool.getting_connection",
-                tags=self._extra_tags + ["method:available"],
+                tags=[*self._extra_tags, "method:available"],
             )
         return super()._get_conn()
 

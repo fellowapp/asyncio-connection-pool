@@ -1,6 +1,6 @@
-from abc import ABC, abstractmethod
 import asyncio
 import inspect
+from abc import ABC, abstractmethod
 from contextlib import asynccontextmanager
 from typing import AsyncIterator, Awaitable, Generic, Optional, TypeVar
 
@@ -10,16 +10,13 @@ Conn = TypeVar("Conn")
 
 class ConnectionStrategy(ABC, Generic[Conn]):
     @abstractmethod
-    async def make_connection(self) -> Conn:
-        ...
+    async def make_connection(self) -> Conn: ...
 
     @abstractmethod
-    def connection_is_closed(self, conn: Conn) -> bool:
-        ...
+    def connection_is_closed(self, conn: Conn) -> bool: ...
 
     @abstractmethod
-    async def close_connection(self, conn: Conn) -> None:
-        ...
+    async def close_connection(self, conn: Conn) -> None: ...
 
 
 async def _close_connection_compat(
@@ -60,18 +57,19 @@ class ConnectionPool(Generic[Conn]):
         *,
         strategy: ConnectionStrategy[Conn],
         max_size: int,
-        burst_limit: Optional[int] = None
+        burst_limit: Optional[int] = None,
     ) -> None:
         self._loop = asyncio.get_event_loop()
         self.strategy = strategy
         self.max_size = max_size
         self.burst_limit = burst_limit
         if burst_limit is not None and burst_limit < max_size:
-            raise ValueError("burst_limit must be greater than or equal to max_size")
+            msg = "burst_limit must be greater than or equal to max_size"
+            raise ValueError(msg)
         self.in_use = 0
         self.currently_allocating = 0
         self.currently_deallocating = 0
-        self.available: "asyncio.Queue[Conn]" = asyncio.Queue(maxsize=self.max_size)
+        self.available: asyncio.Queue[Conn] = asyncio.Queue(maxsize=self.max_size)
 
     @property
     def _total(self) -> int:
@@ -110,7 +108,7 @@ class ConnectionPool(Generic[Conn]):
             # Incidentally, awaiting a done Future doesn't involve yielding to
             # the event loop; it's more like getting the next value from a
             # generator.
-            fut: "asyncio.Future[Conn]" = self._loop.create_future()
+            fut: asyncio.Future[Conn] = self._loop.create_future()
             fut.set_result(self.available.get_nowait())
             self.in_use += 1
             return fut

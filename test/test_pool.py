@@ -1,11 +1,14 @@
 import asyncio
+import random
+from contextlib import asynccontextmanager
+from functools import partial
+
 import pytest
+
 from asyncio_connection_pool import ConnectionPool, ConnectionStrategy
 from asyncio_connection_pool.contrib.datadog import (
     ConnectionPool as TracingConnectionPool,
 )
-from contextlib import asynccontextmanager
-from functools import partial
 
 
 @pytest.fixture(
@@ -17,8 +20,6 @@ def pool_cls(request):
 
 class RandomIntStrategy(ConnectionStrategy[int]):
     async def make_connection(self):
-        import random
-
         return random.randint(0, 10000)
 
     def connection_is_closed(self, conn):
@@ -28,13 +29,16 @@ class RandomIntStrategy(ConnectionStrategy[int]):
         pass
 
 
-def test_valid_burst_limit(pool_cls):
+@pytest.mark.asyncio()
+async def test_valid_burst_limit(pool_cls):  # noqa: RUF029
     """Test that invalid burst_limit values cause errors (only at construction time)"""
     strategy = RandomIntStrategy()
     pool_cls(strategy=strategy, max_size=100, burst_limit=None)
     pool_cls(strategy=strategy, max_size=100, burst_limit=100)
     pool_cls(strategy=strategy, max_size=100, burst_limit=101)
-    with pytest.raises(ValueError):
+    with pytest.raises(
+        ValueError, match="burst_limit must be greater than or equal to max_size"
+    ):
         pool_cls(strategy=strategy, max_size=100, burst_limit=99)
 
 
@@ -60,7 +64,7 @@ class Counter:
             self.n -= 1
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_concurrent_get_connection(pool_cls):
     """Test handling several connection requests in a short time."""
 
@@ -70,9 +74,8 @@ async def test_concurrent_get_connection(pool_cls):
     stop = asyncio.Event()
 
     async def connection_holder():
-        async with pool.get_connection():
-            async with counter.inc():
-                await stop.wait()
+        async with pool.get_connection(), counter.inc():
+            await stop.wait()
 
     coros = [asyncio.create_task(connection_holder()) for _ in range(nworkers)]
     await counter.wait()
@@ -89,7 +92,7 @@ async def test_concurrent_get_connection(pool_cls):
     ), f"{nworkers} connections should be allocated"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_currently_allocating(pool_cls):
     """Test that currently_allocating is accurate."""
 
@@ -112,10 +115,8 @@ async def test_currently_allocating(pool_cls):
     ev2 = asyncio.Event()
 
     async def worker():
-        async with counter.inc():
-            async with pool.get_connection():
-                async with counter2.inc():
-                    await ev2.wait()
+        async with counter.inc(), pool.get_connection(), counter2.inc():
+            await ev2.wait()
 
     coros = [asyncio.create_task(worker()) for _ in range(nworkers)]
     await counter.wait()
@@ -126,17 +127,17 @@ async def test_currently_allocating(pool_cls):
     ), f"{nworkers} workers are waiting for a connection"
     ev.set()  # allow the workers to get their connections
     await counter2.wait()
-    assert (
-        pool.currently_allocating == 0 and pool.in_use == nworkers
-    ), "all workers should have their connections now"
+    assert pool.currently_allocating == 0
+    assert pool.in_use == nworkers, "all workers should have their connections now"
     ev2.set()
     await asyncio.gather(*coros)
+    assert pool.currently_allocating == 0
     assert (
-        pool.in_use == 0 and pool.available.qsize() == nworkers
+        pool.available.qsize() == nworkers
     ), "all workers should have returned their connections"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_burst(pool_cls):
     """Test that bursting works when enabled and doesn't when not."""
 
@@ -151,9 +152,8 @@ async def test_burst(pool_cls):
     pool = pool_cls(strategy=Strategy(), max_size=5)
 
     async def worker(counter, ev):
-        async with pool.get_connection():
-            async with counter.inc():
-                await ev.wait()  # hold the connection until we say so
+        async with pool.get_connection(), counter.inc():
+            await ev.wait()  # hold the connection until we say so
 
     # Use up the normal max_size of the pool
     main_event = asyncio.Event()
@@ -206,7 +206,7 @@ async def test_burst(pool_cls):
     ), "Workers should return their connections to the pool"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_stale_connections(pool_cls):
     """Test that the pool doesn't hand out closed connections."""
 
@@ -248,7 +248,7 @@ async def test_stale_connections(pool_cls):
         ), "Make sure connections closed by consumers are not given back out"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_handling_cancellederror():
     making_connection = asyncio.Event()
 
