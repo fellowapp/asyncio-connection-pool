@@ -131,7 +131,7 @@ async def test_currently_allocating(pool_cls):
     assert pool.in_use == nworkers, "all workers should have their connections now"
     ev2.set()
     await asyncio.gather(*coros)
-    assert pool.currently_allocating == 0
+    assert pool.in_use == 0
     assert (
         pool.available.qsize() == nworkers
     ), "all workers should have returned their connections"

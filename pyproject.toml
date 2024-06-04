@@ -14,7 +14,6 @@ dependencies = []
 
 [project.optional-dependencies]
 datadog = ["ddtrace", "datadog"]
-aioredis = ["redis>=4.2"]
 dev = [
     "codecov~=2.1",
     "mypy~=1.9",
