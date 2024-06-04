@@ -1,0 +1,68 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "asyncio-connection-pool"
+dynamic = ["version"]
+description = "A high-throughput, optionally-burstable pool free of explicit locking"
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [{ name = "Patrick Gingras", email = "775.pg.12@gmail.com" }]
+license = { text = "BSD-3-Clause" }
+dependencies = []
+
+[project.optional-dependencies]
+datadog = ["ddtrace", "datadog"]
+dev = [
+    "codecov~=2.1",
+    "mypy~=1.9",
+    "pytest~=8.1",
+    "pytest-asyncio~=0.23",
+    "pytest-cov~=5.0",
+    "ruff~=0.4",
+]
+
+[tool.setuptools_scm]
+
+[tool.ruff.lint]
+select = [
+    "B",
+    "COM",
+    "E",
+    "EM",
+    "F",
+    "I",
+    "I",
+    "N",
+    "PT",
+    "RSE",
+    "RUF",
+    "SIM",
+    "UP",
+    "W",
+]
+ignore = ["COM812"]
+preview = true
+
+[tool.ruff.format]
+preview = true
+
+[tool.mypy]
+ignore_missing_imports = true
+check_untyped_defs = true
+disallow_any_unimported = true
+disallow_any_decorated = true
+disallow_any_generics = true
+disallow_subclassing_any = true
+disallow_incomplete_defs = false
+disallow_untyped_decorators = true
+no_implicit_optional = true
+strict_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+warn_unreachable = true
+implicit_reexport = false
+strict_equality = true
+pretty = true

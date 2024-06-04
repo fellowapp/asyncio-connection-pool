@@ -1,63 +1,37 @@
 name: CI
-on: [push, pull_request]
+
+on:
+  push:
+  pull_request:
+
 jobs:
-  black:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with:
-          python-version: "3.9"
-      - run: pip install riot==0.19.0
-      - run: riot -v run -s black -- --check .
-  mypy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.9"
-      - run: pip install riot==0.19.0
-      - run: riot -v run mypy
-  flake8:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.9"
-      - run: pip install riot==0.19.0
-      - run: riot -v run flake8
+      - run: pip install uv
+      - run: uv venv
+      - run: uv pip install --requirement pyproject.toml --all-extras
+      - run: .venv/bin/ruff format --check .
+      - run: .venv/bin/ruff check .
+      - run: .venv/bin/mypy asyncio_connection_pool
+
   test:
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
-    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - name: install riot
-        run: pip install riot==0.19.0
-      - name: run tests
-        run: riot -v run --python=${{ matrix.python-version }} test -- --cov=asyncio_connection_pool --cov-branch --cov-config=.coveragerc
-      - name: install coverage
-        run: pip install coverage
-      - name: upload coverage
-        uses: coverallsapp/github-action@v2
-        with:
-          parallel: true
-          flag-name: run ${{ join(matrix.*, ' - ') }}
-  finish-coveralls:
-    needs: test
-    if: ${{ always() }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Coveralls Finished
-        uses: coverallsapp/github-action@v2
-        with:
-          parallel-finished: true
-          allow-empty: true
+      - run: pip install uv
+      - run: uv venv
+      - run: uv pip install --editable ".[dev,datadog,aioredis]"
+      - run: .venv/bin/pytest --cov=asyncio_connection_pool --cov-branch --cov-config=.coveragerc
+      - run: .venv/bin/codecov
+        if: matrix.python-version == '3.11'
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
