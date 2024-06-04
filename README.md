@@ -1,11 +1,12 @@
 # asyncio-connection-pool
 
-[![GitHub Workflow Status (main)](https://img.shields.io/github/workflow/status/fellowinsights/asyncio-connection-pool/CI/main?style=flat)][main CI]
+[![GitHub Workflow Status (main)](https://img.shields.io/github/actions/workflow/status/fellowapp/asyncio-connection-pool/ci.yml?branch=main&style=flat)][main CI]
 [![PyPI](https://img.shields.io/pypi/v/asyncio-connection-pool?style=flat)][package]
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/asyncio-connection-pool?style=flat)][package]
+[![codecov](https://codecov.io/gh/fellowapp/asyncio-connection-pool/graph/badge.svg?token=F3D4D9EG6M)](https://codecov.io/gh/fellowapp/asyncio-connection-pool)
 [![Fellow Careers](https://img.shields.io/badge/fellow.app-hiring-576cf7.svg?style=flat)](https://fellow.app/careers/)
 
-[main CI]: https://github.com/fellowinsights/asyncio-connection-pool/actions?query=workflow%3ACI+branch%3Amain
+[main CI]: https://github.com/fellowapp/asyncio-connection-pool/actions?query=workflow%3ACI+branch%3Amain
 [package]: https://pypi.org/project/asyncio-connection-pool/
 
 This is a generic, high-throughput, optionally-burstable pool for asyncio.
@@ -21,10 +22,11 @@ Some cool features:
 - The contents of the pool can be anything; just implement a
   `ConnectionStrategy`.
 
-[^1]: Theoretically, there is an implicit "lock" that is held while an asyncio
-      task is executing. No other task can execute until the current task
-      yields (since it's cooperative multitasking), so any operations during
-      that time are atomic.
+[^1]:
+    Theoretically, there is an implicit "lock" that is held while an asyncio
+    task is executing. No other task can execute until the current task
+    yields (since it's cooperative multitasking), so any operations during
+    that time are atomic.
 
 ## Why?
 
@@ -36,9 +38,7 @@ We also thought it would be nice if we didn't need to keep many connections
 open when they weren't needed, but still have the ability to make more when
 they are required.
 
-
 ## API
-
 
 ### `asyncio_connection_pool.ConnectionPool`
 
@@ -56,7 +56,6 @@ pool = ConnectionPool(strategy=my_strategy, max_size=15)
 
 The constructor can optionally be passed an integer as `burst_limit`. This
 allows the pool to open more connections than `max_size` temporarily.
-
 
 #### `@asynccontextmanager async def get_connection(self) -> AsyncIterator[Conn]`
 
@@ -77,12 +76,10 @@ are available, the caller will yield to the event loop.
 
 When the block is exited, the connection will be returned to the pool.
 
-
 ### `asyncio_connection_pool.ConnectionStrategy`
 
 This is an abstract class that defines the interface of the object passed as
 `strategy`. A subclass _must_ implement the following methods:
-
 
 #### `async def create_connection(self) -> Awaitable[Conn]`
 
@@ -95,7 +92,6 @@ the pool, and in most cases will be stored in the pool to be re-used later.
 
 If this method raises an exception, it will bubble up to the frame where
 `ConnectionPool.get_connection()` was called.
-
 
 #### `def connection_is_closed(self, conn: Conn) -> bool`
 
@@ -111,7 +107,6 @@ exception is suppressed unless it is not a `BaseException`, like
 `asyncio.CancelledError`. It is the responsibility of the `ConnectionStrategy`
 implementation to avoid leaking a connection in this case.
 
-
 #### `async def close_connection(self, conn: Conn)`
 
 This method is called to close a connection. This occurs when the pool has
@@ -122,8 +117,7 @@ If this method raises an exception, the connection is assumed to be closed and
 the exception bubbles to the caller of `ConnectionPool.get_connection().__aexit__`
 (usually an `async with` block).
 
-
-## Integrations  with 3rd-party libraries
+## Integrations with 3rd-party libraries
 
 This package includes support for [`ddtrace`][ddtrace]/[`datadog`][datadog] and
 for [`aioredis`][aioredis] (<2.0.0).
@@ -142,13 +136,11 @@ arguments of the base class, supports:
 - Optional `extra_tags` argument: Additional tags to provide to all metrics
   (strings in a `"key:value"` format)
 
-
 ### `asyncio_connection_pool.contrib.aioredis.RedisConnectionStrategy`
 
 This class implements the `ConnectionStrategy` abstract methods, using
 `aioredis.Redis` objects as connections. The constructor takes arbitrary
 arguments and forwards them to `aioredis.create_redis`.
-
 
 ## How is this safe without locks?
 
