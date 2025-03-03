@@ -29,7 +29,7 @@ class RandomIntStrategy(ConnectionStrategy[int]):
         pass
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_valid_burst_limit(pool_cls):  # noqa: RUF029
     """Test that invalid burst_limit values cause errors (only at construction time)"""
     strategy = RandomIntStrategy()
@@ -64,7 +64,7 @@ class Counter:
             self.n -= 1
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_concurrent_get_connection(pool_cls):
     """Test handling several connection requests in a short time."""
 
@@ -87,12 +87,12 @@ async def test_concurrent_get_connection(pool_cls):
     await asyncio.gather(*coros)
 
     assert pool.in_use == 0
-    assert (
-        pool.available.qsize() == nworkers
-    ), f"{nworkers} connections should be allocated"
+    assert pool.available.qsize() == nworkers, (
+        f"{nworkers} connections should be allocated"
+    )
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_currently_allocating(pool_cls):
     """Test that currently_allocating is accurate."""
 
@@ -122,9 +122,9 @@ async def test_currently_allocating(pool_cls):
     await counter.wait()
     await asyncio.sleep(0)
 
-    assert (
-        pool.currently_allocating == nworkers
-    ), f"{nworkers} workers are waiting for a connection"
+    assert pool.currently_allocating == nworkers, (
+        f"{nworkers} workers are waiting for a connection"
+    )
     ev.set()  # allow the workers to get their connections
     await counter2.wait()
     assert pool.currently_allocating == 0
@@ -132,12 +132,12 @@ async def test_currently_allocating(pool_cls):
     ev2.set()
     await asyncio.gather(*coros)
     assert pool.in_use == 0
-    assert (
-        pool.available.qsize() == nworkers
-    ), "all workers should have returned their connections"
+    assert pool.available.qsize() == nworkers, (
+        "all workers should have returned their connections"
+    )
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_burst(pool_cls):
     """Test that bursting works when enabled and doesn't when not."""
 
@@ -189,24 +189,24 @@ async def test_burst(pool_cls):
     assert pool._waiters == 1, "Worker should be waiting, we're at burst_limit already"
     burst_event.set()  # Allow worker holding burst connection to finish
     await burst_worker  # Wait for it to release the connection
-    assert (
-        not did_call_close_connection.is_set()
-    ), "Did not churn the burst connection while there was a waiter"
+    assert not did_call_close_connection.is_set(), (
+        "Did not churn the burst connection while there was a waiter"
+    )
     await coro  # Should be able to take that burst connection we created
-    assert (
-        did_call_close_connection.is_set()
-    ), "No more waiters, burst connection should be closed"
-    assert (
-        pool._total == pool.max_size
-    ), "Pool should return to max size after burst capacity is not needed"
+    assert did_call_close_connection.is_set(), (
+        "No more waiters, burst connection should be closed"
+    )
+    assert pool._total == pool.max_size, (
+        "Pool should return to max size after burst capacity is not needed"
+    )
     main_event.set()  # Allow the initial workers to exit
     await asyncio.gather(*coros)  # Wait for initial workers to exit
-    assert (
-        pool.available.qsize() == pool.max_size
-    ), "Workers should return their connections to the pool"
+    assert pool.available.qsize() == pool.max_size, (
+        "Workers should return their connections to the pool"
+    )
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_stale_connections(pool_cls):
     """Test that the pool doesn't hand out closed connections."""
 
@@ -243,12 +243,12 @@ async def test_stale_connections(pool_cls):
         stale_connections.add(conn)
 
     async with pool.get_connection() as conn:
-        assert (
-            conn != now_stale
-        ), "Make sure connections closed by consumers are not given back out"
+        assert conn != now_stale, (
+            "Make sure connections closed by consumers are not given back out"
+        )
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_handling_cancellederror():
     making_connection = asyncio.Event()
 

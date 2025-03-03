@@ -1,18 +1,32 @@
+from collections.abc import AsyncIterator, Awaitable
 from contextlib import AsyncExitStack, asynccontextmanager
-from typing import Any, AsyncIterator, Awaitable, Coroutine, TypeVar
+from typing import TypeVar
 
 from datadog.dogstatsd.base import statsd
-from ddtrace import tracer
+from ddtrace.trace import tracer
 
-from asyncio_connection_pool import ConnectionPool as _ConnectionPool
+from asyncio_connection_pool import (
+    ConnectionPool as _ConnectionPool,
+)
+from asyncio_connection_pool import (
+    ConnectionStrategy,
+)
 
 __all__ = ("ConnectionPool",)
 Conn = TypeVar("Conn")
 
 
 class ConnectionPool(_ConnectionPool[Conn]):
-    def __init__(self, service_name, *args, extra_tags=None, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self,
+        service_name: str,
+        *,
+        extra_tags: list[str] | None = None,
+        strategy: ConnectionStrategy[Conn],
+        max_size: int,
+        burst_limit: int | None = None,
+    ):
+        super().__init__(strategy=strategy, max_size=max_size, burst_limit=burst_limit)
         self._connections_acquiring = 0
         self._service_name = service_name
         self._is_bursting = False
@@ -85,7 +99,7 @@ class ConnectionPool(_ConnectionPool[Conn]):
             tags=self._extra_tags,
         )
 
-    def _connection_maker(self) -> Coroutine[Any, Any, Conn]:
+    def _connection_maker(self):
         statsd.increment(
             f"{self._service_name}.pool.getting_connection",
             tags=[*self._extra_tags, "method:new"],
@@ -100,7 +114,7 @@ class ConnectionPool(_ConnectionPool[Conn]):
 
         return connection_maker(self)
 
-    def _connection_waiter(self) -> Coroutine[Any, Any, Conn]:
+    def _connection_waiter(self):
         statsd.increment(
             f"{self._service_name}.pool.getting_connection",
             tags=[*self._extra_tags, "method:wait"],

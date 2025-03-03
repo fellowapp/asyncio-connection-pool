@@ -1,8 +1,10 @@
 import asyncio
+import collections
 import inspect
 from abc import ABC, abstractmethod
+from collections.abc import AsyncIterator, Awaitable
 from contextlib import asynccontextmanager
-from typing import AsyncIterator, Awaitable, Generic, Optional, TypeVar
+from typing import Generic, TypeVar, cast
 
 __all__ = "ConnectionPool", "ConnectionStrategy"
 Conn = TypeVar("Conn")
@@ -57,7 +59,7 @@ class ConnectionPool(Generic[Conn]):
         *,
         strategy: ConnectionStrategy[Conn],
         max_size: int,
-        burst_limit: Optional[int] = None,
+        burst_limit: int | None = None,
     ) -> None:
         self._loop = asyncio.get_event_loop()
         self.strategy = strategy
@@ -77,7 +79,10 @@ class ConnectionPool(Generic[Conn]):
 
     @property
     def _waiters(self) -> int:
-        waiters = self.available._getters  # type: ignore
+        waiters: collections.deque[asyncio.Future[None]] = cast(
+            collections.deque[asyncio.Future[None]],
+            self.available._getters,  # type: ignore
+        )
         return sum(not (w.done() or w.cancelled()) for w in waiters)
 
     async def _connection_maker(self) -> Conn:
