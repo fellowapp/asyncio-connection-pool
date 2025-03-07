@@ -15,6 +15,26 @@ authors = [{ name = "Patrick Gingras", email = "775.pg.12@gmail.com" }]
 license = { text = "BSD-3-Clause" }
 dependencies = []
 
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
+
+[project.urls]
+Homepage = "https://github.com/fellowapp/asyncio-connection-pool"
+Repository = "https://github.com/fellowapp/asyncio-connection-pool"
+Changelog = "https://github.com/fellowapp/asyncio-connection-pool/releases"
+
 [project.optional-dependencies]
 datadog = ["ddtrace", "datadog"]
 
